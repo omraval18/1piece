@@ -1,0 +1,1 @@
+Extract one 3D-printer hotend as a single JSON object (not a list): name, thread it accepts (M6x1 / M6x0.75 / MK8 / other), body (standard/volcano/supervolcano), throat (ptfe_lined or all_metal), max_temp_c, heater_voltage (12V or 24V), heater_cartridge_mm, thermistor_type (NTC100K/PT1000/other), filament_diameter_mm (1.75 or 2.85), source_url. Omit unstated fields. Do not guess.

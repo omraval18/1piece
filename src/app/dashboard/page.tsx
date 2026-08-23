@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { CompatLab } from "@/components/compat-lab";
 import { SignOutButton } from "./sign-out-button";
 
 export default async function DashboardPage() {
@@ -11,10 +12,14 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Welcome, {session.user.name}</h1>
-      <p className="text-muted-foreground">{session.user.email}</p>
-      <SignOutButton />
+    <div className="flex flex-1 flex-col">
+      <div className="flex items-center justify-between gap-4 p-4">
+        <p className="text-sm text-muted-foreground">
+          {session.user.name} · {session.user.email}
+        </p>
+        <SignOutButton />
+      </div>
+      <CompatLab />
     </div>
   );
 }

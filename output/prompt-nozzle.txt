@@ -1,0 +1,1 @@
+Extract one 3D-printer nozzle as a single JSON object (not a list): name, thread (M6x1 / M6x0.75 / MK8 / other; Volcano is length not thread), body (standard/volcano/supervolcano), thread_length_mm, nozzle_diameter_mm, max_temp_c, material (brass/hardened_steel/plated_copper/other), filament_diameter_mm (1.75 or 2.85), source_url. Omit unstated fields. Do not guess.

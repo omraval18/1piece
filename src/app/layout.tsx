@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "OnePiece",
-  description: "Nozzle/hotend compatibility, sourced from real docs.",
+  description: "Nozzle/hotend compatibility from manufacturer specs, not guesswork.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
