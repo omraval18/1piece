@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquareIcon, PuzzleIcon } from "lucide-react";
+import { MessageSquareIcon } from "lucide-react";
 
 import { SignOutButton } from "@/components/sign-out-button";
 import { NewChatButton } from "@/components/new-chat-button";
@@ -43,14 +43,6 @@ export function AppSidebar({
               <Link href="/">
                 <MessageSquareIcon />
                 <span>Chats</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/parts"}>
-              <Link href="/parts">
-                <PuzzleIcon />
-                <span>Parts lab</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

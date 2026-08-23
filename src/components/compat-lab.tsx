@@ -17,19 +17,19 @@ import { Input } from "@/components/ui/input";
 
 type CatalogItem = {
   id: string;
-  kind: "nozzle" | "hotend";
   label: string;
   url: string;
 };
 
-type Profile = Record<string, unknown> & {
-  kind: "nozzle" | "hotend";
+type Profile = {
   name: string | null;
+  category: string | null;
+  specs: Record<string, string | number>;
   source_url: string | null;
 };
 
 type Verdict = {
-  result: "compatible" | "incompatible" | "unclear";
+  result: "compatible" | "incompatible" | "conditional" | "unclear";
   reasoning: string;
   decisive_fields: string[];
   sources: { url: string; part: "a" | "b" }[];
@@ -54,7 +54,6 @@ export function CompatLab() {
   const [parts, setParts] = useState<CatalogItem[]>([]);
   const [catalogId, setCatalogId] = useState("");
   const [url, setUrl] = useState("");
-  const [kind, setKind] = useState<"nozzle" | "hotend">("nozzle");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CompatPayload | null>(null);
 
@@ -65,7 +64,6 @@ export function CompatLab() {
         setParts(data.parts);
         if (data.parts[0]) {
           setCatalogId(data.parts[0].id);
-          setKind(data.parts[0].kind);
         }
       })
       .catch(() => toast.error("Could not load catalog"));
@@ -80,9 +78,7 @@ export function CompatLab() {
     event.preventDefault();
     setLoading(true);
     setResult(null);
-    const body = url.trim()
-      ? { url: url.trim(), kind }
-      : { catalogId };
+    const body = url.trim() ? { url: url.trim() } : { catalogId };
     try {
       const res = await fetch("/api/compat", {
         method: "POST",
@@ -106,12 +102,12 @@ export function CompatLab() {
           CompatibilityProof
         </p>
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Will this nozzle fit that hotend?
+          Will these two parts work together?
         </h1>
         <p className="max-w-2xl text-muted-foreground">
           Specs come from manufacturer and wiki pages via Bright Data Scraper
-          Studio. Units and thread names are normalized in code. Fit is scored
-          with explicit field citations, not a page-level guess.
+          Studio. Fit is scored against the actual extracted fields, with
+          citations, not a page-level guess.
         </p>
       </header>
 
@@ -131,15 +127,11 @@ export function CompatLab() {
                 id="catalog"
                 className={selectClass}
                 value={catalogId}
-                onChange={(event) => {
-                  const next = parts.find((part) => part.id === event.target.value);
-                  setCatalogId(event.target.value);
-                  if (next) setKind(next.kind);
-                }}
+                onChange={(event) => setCatalogId(event.target.value)}
               >
                 {parts.map((part) => (
                   <option key={part.id} value={part.id}>
-                    {part.kind === "nozzle" ? "Nozzle" : "Hotend"} — {part.label}
+                    {part.label}
                   </option>
                 ))}
               </select>
@@ -163,25 +155,9 @@ export function CompatLab() {
                 id="url"
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://e3d-online.com/products/…"
+                placeholder="https://example.com/products/…"
               />
             </Field>
-            {url.trim() ? (
-              <Field>
-                <FieldLabel htmlFor="kind">This URL is a</FieldLabel>
-                <select
-                  id="kind"
-                  className={selectClass}
-                  value={kind}
-                  onChange={(event) =>
-                    setKind(event.target.value as "nozzle" | "hotend")
-                  }
-                >
-                  <option value="nozzle">Nozzle</option>
-                  <option value="hotend">Hotend</option>
-                </select>
-              </Field>
-            ) : null}
             <Button type="submit" disabled={loading}>
               {loading ? "Extracting…" : "Find matching parts"}
             </Button>
@@ -209,7 +185,9 @@ function Results({ payload }: { payload: CompatPayload }) {
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm">
             {profile.name ?? "Unnamed"}{" "}
-            <span className="text-muted-foreground">({profile.kind})</span>
+            {profile.category && (
+              <span className="text-muted-foreground">({profile.category})</span>
+            )}
           </p>
           {profile.source_url ? (
             <Link
@@ -221,7 +199,7 @@ function Results({ payload }: { payload: CompatPayload }) {
             </Link>
           ) : null}
           <pre className="overflow-x-auto border border-border bg-muted/40 p-4 text-xs">
-            {JSON.stringify(profile, null, 2)}
+            {JSON.stringify(profile.specs, null, 2)}
           </pre>
         </CardContent>
       </Card>
@@ -268,7 +246,9 @@ function ResultBadge({ result }: { result: Verdict["result"] }) {
       ? "Compatible"
       : result === "incompatible"
         ? "Incompatible"
-        : "Unclear";
+        : result === "conditional"
+          ? "Conditional"
+          : "Unclear";
   return (
     <span className="border border-border px-2 py-1 text-xs font-semibold tracking-widest uppercase">
       {label}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, isToolUIPart, type UIMessage } from "ai";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -14,6 +15,8 @@ import {
 } from "@/components/ai-elements/conversation";
 import {
   Message,
+  MessageAction,
+  MessageActions,
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
@@ -31,6 +34,14 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+
+function assistantText(message: UIMessage) {
+  return message.parts
+    .filter((part): part is { type: "text"; text: string } => part.type === "text")
+    .map((part) => part.text)
+    .join("\n\n")
+    .trim();
+}
 
 export function ChatView({
   id,
@@ -66,6 +77,19 @@ export function ChatView({
   });
 
   const streaming = status === "streaming" || status === "submitted";
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function copyAnswer(message: UIMessage) {
+    const text = assistantText(message);
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(message.id);
+      window.setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      toast.error("Could not copy");
+    }
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -73,8 +97,8 @@ export function ChatView({
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
-              title="Ask about nozzle and hotend fit"
-              description="The model can list catalog parts, extract specs, and score compatibility. Tool calls are saved with the thread."
+              title="Ask any hardware compatibility question"
+              description="CPU and motherboard, camera and lens, PSU and GPU, RAM, docks, chargers — any brands. The agent finds spec pages, scrapes them, and scores fit including BIOS or firmware caveats."
             />
           ) : (
             messages.map((message, index) => (
@@ -125,6 +149,23 @@ export function ChatView({
                     return null;
                   })}
                 </MessageContent>
+                {message.role === "assistant" &&
+                  assistantText(message) &&
+                  !(streaming && index === messages.length - 1) && (
+                    <MessageActions>
+                      <MessageAction
+                        label="Copy answer"
+                        tooltip={copiedId === message.id ? "Copied" : "Copy"}
+                        onClick={() => void copyAnswer(message)}
+                      >
+                        {copiedId === message.id ? (
+                          <CheckIcon className="size-3.5" />
+                        ) : (
+                          <CopyIcon className="size-3.5" />
+                        )}
+                      </MessageAction>
+                    </MessageActions>
+                  )}
               </Message>
             ))
           )}
@@ -141,7 +182,7 @@ export function ChatView({
           }}
         >
           <PromptInputBody>
-            <PromptInputTextarea placeholder="Will an E3D V6 brass nozzle fit a stock Creality hotend?" />
+            <PromptInputTextarea placeholder="Ryzen 9 9950X on an ASUS X670E-E — BIOS? Sony FE 200-600 on an A7 IV?" />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputSubmit onStop={stop} status={status} />

@@ -14,7 +14,20 @@ import { auth } from "@/lib/auth";
 import { chatTools } from "@/lib/chat-tools";
 import { loadChat, saveChat } from "@/lib/chat-store";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
+
+const CHAT_SYSTEM = [
+  "You answer hardware compatibility questions for any products and any manufacturers: CPU/motherboard, RAM, GPU/PSU, camera/lens, flash, storage, docking, networking optics, 3D-printer parts, chargers, etc. Nothing is out of scope because of brand or category.",
+  "",
+  "Always use tools. Never refuse for being the wrong vertical. Never invent spec values.",
+  "",
+  "Flow:",
+  "1. Call checkCompatibility with deviceQuery, candidateQuery, and question set to the user's full message (including BIOS, firmware, AF, wattage, and other caveats).",
+  "2. Or discoverSpecUrls then scrapeSpecs if you need extra pages.",
+  "3. Use extracted specs and page_text. Cite source URLs. If a BIOS/firmware condition is in the evidence, the verdict is conditional. If a required fact is missing, unclear — list what was checked.",
+  "",
+  "Do not tell the user a brand is unsupported.",
+].join("\n");
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -46,12 +59,10 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: minimax.chatModel(minimaxModelId),
-    system: `You help users check 3D-printer nozzle and hotend compatibility.
-Use listParts, extractPart, and findCompatibleParts instead of guessing specs.
-Cite the fields those tools return. If a required spec is missing, say the result is unclear.`,
+    system: CHAT_SYSTEM,
     messages: await convertToModelMessages(messages),
     tools: chatTools,
-    stopWhen: stepCountIs(8),
+    stopWhen: stepCountIs(12),
     abortSignal: request.signal,
     providerOptions: {
       minimax: {

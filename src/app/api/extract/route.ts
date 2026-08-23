@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { partKindSchema } from "@/lib/compat/contracts";
 import { extractDevice } from "@/lib/compat/extract";
 
 export const maxDuration = 180;
@@ -9,7 +8,6 @@ const bodySchema = z
   .object({
     catalogId: z.string().min(1).optional(),
     url: z.string().url().optional(),
-    kind: partKindSchema.optional(),
   })
   .refine((value) => value.catalogId || value.url, {
     message: "catalogId or url is required",

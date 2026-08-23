@@ -168,7 +168,9 @@ const getHighlighter = (
 const createRawTokens = (code: string): TokenizedCode => ({
   bg: "transparent",
   fg: "inherit",
-  tokens: code.split("\n").map((line) =>
+  // `code` is typed as string but callers can still hand this a stringified
+  // `undefined` (e.g. JSON.stringify(undefined)) — guard rather than crash.
+  tokens: (typeof code === "string" ? code : "").split("\n").map((line) =>
     line === ""
       ? []
       : [
@@ -380,32 +382,38 @@ export const CodeBlockContent = ({
   language: BundledLanguage;
   showLineNumbers?: boolean;
 }) => {
+  // `code` is typed as string, but a caller building it with
+  // JSON.stringify(maybeUndefined) can still hand this `undefined` at
+  // runtime — normalize once so every downstream call (cache keys,
+  // tokenizing, highlighting) sees a real string instead of crashing.
+  const safeCode = typeof code === "string" ? code : "";
+
   // Memoized raw tokens for immediate display
-  const rawTokens = useMemo(() => createRawTokens(code), [code]);
+  const rawTokens = useMemo(() => createRawTokens(safeCode), [safeCode]);
 
   // Synchronous cache lookup — avoids setState in effect for cached results
   const syncTokens = useMemo(
-    () => highlightCode(code, language) ?? rawTokens,
-    [code, language, rawTokens]
+    () => highlightCode(safeCode, language) ?? rawTokens,
+    [safeCode, language, rawTokens]
   );
 
   // Async highlighting result (populated after shiki loads)
   const [asyncTokens, setAsyncTokens] = useState<TokenizedCode | null>(null);
-  const asyncKeyRef = useRef({ code, language });
+  const asyncKeyRef = useRef({ code: safeCode, language });
 
   // Invalidate stale async tokens synchronously during render
   if (
-    asyncKeyRef.current.code !== code ||
+    asyncKeyRef.current.code !== safeCode ||
     asyncKeyRef.current.language !== language
   ) {
-    asyncKeyRef.current = { code, language };
+    asyncKeyRef.current = { code: safeCode, language };
     setAsyncTokens(null);
   }
 
   useEffect(() => {
     let cancelled = false;
 
-    highlightCode(code, language, (result) => {
+    highlightCode(safeCode, language, (result) => {
       if (!cancelled) {
         setAsyncTokens(result);
       }
@@ -414,7 +422,7 @@ export const CodeBlockContent = ({
     return () => {
       cancelled = true;
     };
-  }, [code, language]);
+  }, [safeCode, language]);
 
   const tokenized = asyncTokens ?? syncTokens;
 

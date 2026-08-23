@@ -1,9 +1,7 @@
-import type { PartKind } from "./contracts";
-import { normalizeDevice } from "./normalize";
+import { normalizePart } from "./normalize";
 
 export type CatalogPart = {
   id: string;
-  kind: PartKind;
   label: string;
   url: string;
   fixture: Record<string, unknown>;
@@ -12,15 +10,20 @@ export type CatalogPart = {
 /**
  * Public manufacturer / wiki pages. Fixtures are the structured records a
  * Scraper Studio collector is expected to return for each URL.
+ *
+ * These happen to all be 3D-printer nozzle/hotend parts because that's the
+ * real, verifiable data this demo ships with — nothing in the pipeline
+ * requires that category. Any other kind of part works the same way once a
+ * collector has scraped a real page for it.
  */
 export const CATALOG: CatalogPart[] = [
   {
     id: "e3d-v6-brass-04",
-    kind: "nozzle",
-    label: "E3D V6 brass 0.4 mm",
+    label: "E3D V6 brass nozzle, 0.4 mm",
     url: "https://e3d-online.com/products/v6-nozzles",
     fixture: {
       name: "E3D V6 Nozzle 0.4mm Brass",
+      category: "nozzle",
       thread: "M6x1",
       body: "standard",
       thread_length_mm: 7.5,
@@ -33,11 +36,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "e3d-hardened-500",
-    kind: "nozzle",
-    label: "E3D hardened steel (500 °C)",
+    label: "E3D hardened steel nozzle (500 °C)",
     url: "https://e3d-online.com/products/hardened-steel-nozzles",
     fixture: {
       name: "E3D Hardened Steel Nozzle",
+      category: "nozzle",
       thread: "M6x1",
       body: "standard",
       nozzle_diameter_mm: 0.4,
@@ -49,11 +52,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "e3d-volcano-brass",
-    kind: "nozzle",
-    label: "E3D Volcano brass 0.6 mm",
+    label: "E3D Volcano brass nozzle, 0.6 mm",
     url: "https://e3d-online.com/products/volcano-nozzles",
     fixture: {
       name: "E3D Volcano Nozzle 0.6mm Brass",
+      category: "nozzle",
       thread: "M6x1",
       body: "volcano",
       nozzle_diameter_mm: 0.6,
@@ -65,11 +68,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "creality-mk8-brass",
-    kind: "nozzle",
-    label: "Creality MK8 brass 0.4 mm",
+    label: "Creality MK8 brass nozzle, 0.4 mm",
     url: "https://www.creality.com/products/creality-brass-nozzle-mk8",
     fixture: {
       name: "Creality MK8 Brass Nozzle 0.4mm",
+      category: "nozzle",
       thread: "MK8",
       body: "standard",
       nozzle_diameter_mm: 0.4,
@@ -81,11 +84,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "e3d-v6-hotend",
-    kind: "hotend",
     label: "E3D V6 all-metal hotend",
     url: "https://e3d-online.com/products/v6-hotend",
     fixture: {
       name: "E3D V6 HotEnd",
+      category: "hotend",
       thread: "M6x1",
       body: "standard",
       throat: "all_metal",
@@ -99,11 +102,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "e3d-volcano-hotend",
-    kind: "hotend",
     label: "E3D Volcano hotend",
     url: "https://e3d-online.com/products/volcano-hotend",
     fixture: {
       name: "E3D Volcano HotEnd",
+      category: "hotend",
       thread: "M6x1",
       body: "volcano",
       throat: "all_metal",
@@ -115,11 +118,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "creality-ptfe-hotend",
-    kind: "hotend",
     label: "Creality stock PTFE-lined hotend",
     url: "https://reprap.org/wiki/Hot_End_Comparison",
     fixture: {
       name: "Creality stock hotend (PTFE lined)",
+      category: "hotend",
       thread: "MK8",
       body: "standard",
       throat: "ptfe_lined",
@@ -131,11 +134,11 @@ export const CATALOG: CatalogPart[] = [
   },
   {
     id: "ptfe-m6-hotend",
-    kind: "hotend",
     label: "V6-style PTFE-lined hotend (wiki)",
     url: "https://reprap.org/wiki/Hotend",
     fixture: {
       name: "V6-style PTFE-lined hotend",
+      category: "hotend",
       thread: "M6x1",
       body: "standard",
       throat: "ptfe_lined",
@@ -147,7 +150,7 @@ export const CATALOG: CatalogPart[] = [
 ];
 
 export function listCatalog() {
-  return CATALOG.map(({ id, kind, label, url }) => ({ id, kind, label, url }));
+  return CATALOG.map(({ id, label, url }) => ({ id, label, url }));
 }
 
 export function findCatalogPart(id: string): CatalogPart | undefined {
@@ -159,10 +162,11 @@ export function findCatalogByUrl(url: string): CatalogPart | undefined {
   return CATALOG.find((part) => part.url.replace(/\/$/, "") === target);
 }
 
-export function counterpartsOf(kind: PartKind): CatalogPart[] {
-  return CATALOG.filter((part) => part.kind !== kind);
+/** All catalog parts except `excludeId` (the query itself, when it's a catalog part). */
+export function candidateParts(excludeId?: string): CatalogPart[] {
+  return CATALOG.filter((part) => part.id !== excludeId);
 }
 
 export function catalogFixtureProfile(part: CatalogPart) {
-  return normalizeDevice(part.fixture, part.kind, part.url);
+  return normalizePart(part.fixture, part.url);
 }

@@ -1,0 +1,1 @@
+Extract every useful http(s) page link from this sitemap, search-results, or catalog listing as a JSON array. Each item: title, url (absolute), type (product, specification, compatibility, support, manual, firmware, faq, other). Same site only. Skip cart, login, assets. Do not guess.

@@ -1,23 +1,24 @@
-import type { DeviceProfile, PartKind } from "./contracts";
-import { collectorId, runStudioCollector, scrapeMode } from "./brightdata";
+import type { PartProfile } from "./contracts";
+import { collectorId, runStudioCollector, scrapePageMarkdown, scrapeMode } from "./brightdata";
 import {
   catalogFixtureProfile,
   findCatalogByUrl,
   findCatalogPart,
 } from "./catalog";
-import { inferPartKind, normalizeDevice } from "./normalize";
+import { isUsableProfile, normalizePart } from "./normalize";
 
 export type ExtractResult = {
   mode: "fixture" | "live";
   collectorId: string | null;
-  profile: DeviceProfile;
+  profile: PartProfile;
   raw: unknown;
+  extraction: "fixture" | "studio" | "markdown";
 };
 
 export async function extractDevice(input: {
   catalogId?: string;
   url?: string;
-  kind?: PartKind;
+  preferLive?: boolean;
 }): Promise<ExtractResult> {
   const catalogPart = input.catalogId
     ? findCatalogPart(input.catalogId)
@@ -30,7 +31,7 @@ export async function extractDevice(input: {
     throw new Error("Provide a catalog id or a product URL.");
   }
 
-  const mode = scrapeMode();
+  const mode = input.preferLive ? "live" : scrapeMode();
   if (mode === "fixture") {
     if (!catalogPart) {
       throw new Error(
@@ -42,20 +43,48 @@ export async function extractDevice(input: {
       collectorId: collectorId(),
       profile: catalogFixtureProfile(catalogPart),
       raw: catalogPart.fixture,
+      extraction: "fixture",
     };
   }
 
   const { collectorId: id, raw } = await runStudioCollector(url);
-  const kind = inferPartKind(raw, input.kind ?? catalogPart?.kind);
-  if (!kind) {
+  let profile = normalizePart(raw, url);
+  let extraction: ExtractResult["extraction"] = "studio";
+
+  if (!isUsableProfile(profile)) {
+    const markdown = await scrapePageMarkdown(url);
+    profile = normalizePart(
+      {
+        name: profile.name,
+        category: profile.category,
+        page_text: markdown,
+      },
+      url,
+    );
+    extraction = "markdown";
+  }
+
+  if (!isUsableProfile(profile)) {
     throw new Error(
-      "Could not tell if this page is a nozzle or a hotend. Pass kind, or check the collector output for part_kind.",
+      `No usable specs from ${url}. Studio keys: ${asKeys(raw).join(", ") || "(none)"}.`,
     );
   }
+
   return {
     mode,
     collectorId: id,
-    profile: normalizeDevice(raw, kind, url),
+    profile,
     raw,
+    extraction,
   };
+}
+
+function asKeys(raw: unknown): string[] {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return Object.keys(raw);
+  }
+  if (Array.isArray(raw) && raw[0] && typeof raw[0] === "object") {
+    return Object.keys(raw[0] as object);
+  }
+  return [];
 }
