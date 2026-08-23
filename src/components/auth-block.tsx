@@ -99,7 +99,7 @@ export function AuthBlock({
     toast.promise(promise, {
       loading: isSignUp ? "Creating your account…" : "Signing you in…",
       success: () => {
-        router.push("/dashboard")
+        router.push("/")
         return isSignUp
           ? `Welcome to ${BRAND}! Your account is ready.`
           : `Welcome back to ${BRAND}.`

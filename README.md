@@ -7,9 +7,10 @@ code, then scored against a catalog of counterpart parts.
 ## Stack
 
 - Next.js (App Router, TypeScript, Tailwind v4)
-- shadcn/ui
+- shadcn/ui (sidebar + AI conversation / message / prompt / tool)
 - Drizzle ORM + local Postgres
 - better-auth (email/password)
+- AI SDK (`ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`) + Streamdown for streaming markdown
 - `@brightdata/sdk` Scraper Studio (`client.scraperStudio.run`)
 - zod
 
@@ -22,8 +23,14 @@ code, then scored against a catalog of counterpart parts.
 4. `pnpm compat:check` — mechanical fit rules (thread, body, PTFE vs 500 °C).
 5. `pnpm dev` → http://localhost:3000
 
-Pick a catalog part and click **Find matching parts**. The home page does not
-require a login. `/dashboard` is the same lab behind a session.
+After sign-in, `/` is chat (empty state), `/{id}` is a thread, `/parts` is the
+lab. Sign-in and sign-up stay public.
+
+Set `MINIMAX_API_KEY` for chat (OpenAI-compatible MiniMax API at
+`https://api.minimax.io/v1`, model `MiniMax-M2.5` by default). Threads live in
+Postgres (`conversation.messages` jsonb) as full AI SDK `UIMessage[]` so text,
+tool calls, and tool results reload as they were. The sidebar lists those
+threads.
 
 `POST /api/compat` is the downstream integration: a collector id (when live)
 feeds a structured profile, then a typed verdict list.

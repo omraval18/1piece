@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-// Optimistic check only — the cookie's presence is not validated here.
-// Real session validation happens server-side in the protected page itself.
-export function proxy(request: NextRequest) {
-  const sessionCookie = getSessionCookie(request);
+function fromDashboard(pathname: string): string | null {
+  if (pathname !== "/dashboard" && !pathname.startsWith("/dashboard/")) {
+    return null;
+  }
+  const rest = pathname.slice("/dashboard".length) || "/";
+  if (rest === "/") return "/";
+  if (rest.startsWith("/chat/")) {
+    const id = rest.slice("/chat/".length);
+    return id ? `/${id}` : "/";
+  }
+  return rest;
+}
 
+export function proxy(request: NextRequest) {
+  const relocated = fromDashboard(request.nextUrl.pathname);
+  if (relocated) {
+    return NextResponse.redirect(new URL(relocated, request.url));
+  }
+
+  const sessionCookie = getSessionCookie(request);
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
@@ -14,5 +29,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|sign-in|sign-up).*)",
+  ],
 };
